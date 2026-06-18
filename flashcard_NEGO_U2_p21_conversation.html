@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NEGO U2 QA">
+<meta name="theme-color" content="#0ea5e9">
+<link id="pwa-icon" rel="apple-touch-icon" href="">
+<title>NEGO_U2_p21 – Conversation Flashcard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f9ff;min-height:100vh;color:#1e293b}
+.topbar{background:#0ea5e9;position:sticky;top:0;z-index:100;display:flex;align-items:center;padding:0 12px;box-shadow:0 2px 8px rgba(14,165,233,.3)}
+.topbar-title{flex:1;font-size:13px;font-weight:700;color:#fff;padding:13px 0;text-align:center}
+#pwa-add-btn{display:none;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(255,255,255,.6);background:rgba(255,255,255,.15);color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+.wrap{max-width:480px;margin:0 auto;padding:16px 14px}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.ftab{padding:5px 13px;border-radius:20px;border:1.5px solid #bae6fd;background:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;color:#0369a1}
+.ftab.on{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+.meta-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px;color:#64748b}
+.round-badge{padding:3px 12px;border-radius:20px;background:#e0f2fe;border:1.5px solid #bae6fd;color:#0369a1;font-size:11px;font-weight:700}
+.round-badge.retry{background:#fce7f3;border-color:#fbcfe8;color:#9d174d}
+.progress-wrap{height:5px;background:#e0f2fe;border-radius:3px;margin-bottom:14px}
+.progress-bar{height:100%;border-radius:3px;background:#0ea5e9;transition:width .3s}
+/* CARD — JS show/hide (không dùng CSS 3D flip để back tự giãn theo nội dung) */
+.scene{width:100%;max-width:420px;margin:0 auto;cursor:pointer;margin-bottom:16px}
+.card{width:100%;position:relative}
+.face{width:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 20px;min-height:210px}
+.front{background:#fff;border:2px solid #bae6fd;box-shadow:0 2px 16px rgba(14,165,233,.1)}
+.back{background:linear-gradient(135deg,#0c4a6e,#0369a1);color:#fff;border-radius:18px;display:none}
+.front-label{font-size:10px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;background:#e0f2fe;padding:3px 12px;border-radius:20px}
+.question-text{font-size:15px;font-weight:600;text-align:center;color:#1e293b;line-height:1.55;margin-bottom:10px}
+.vocab-chip{font-size:11px;background:#f0f9ff;border:1px solid #bae6fd;color:#0369a1;padding:4px 12px;border-radius:20px;margin-bottom:10px;font-weight:600}
+.audio-btn{background:#0ea5e9;color:#fff;border:none;padding:6px 16px;border-radius:20px;font-size:12px;cursor:pointer;margin-top:4px;font-weight:600}
+.audio-btn:active{background:#0284c7}
+.flip-hint-front{font-size:10px;color:#94a3b8;margin-top:10px}
+.back-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;background:rgba(255,255,255,.15);padding:3px 12px;border-radius:20px}
+.answer-text{font-size:15px;font-weight:500;text-align:center;color:#fff;line-height:1.6;margin-bottom:10px}
+.answer-text .hl{background:#fef08a;color:#1a202c;border-radius:4px;padding:1px 5px;font-weight:700}
+.audio-btn-back{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);padding:6px 16px;border-radius:20px;font-size:12px;cursor:pointer;align-self:center;margin-top:4px;font-weight:600}
+.audio-btn-back:active{background:rgba(255,255,255,.25)}
+.extra-info{font-size:12px;color:rgba(255,255,255,.85);text-align:center;margin-top:10px;line-height:1.6;background:rgba(0,0,0,.15);border-radius:10px;padding:8px 12px;max-width:100%}
+.extra-info .hl{background:#fef08a;color:#1a202c;border-radius:4px;padding:1px 4px;font-weight:700}
+.flip-hint-back{font-size:10px;color:rgba(255,255,255,.5);margin-top:10px}
+.btn-row{display:flex;gap:8px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
+.btn{padding:9px 20px;border-radius:12px;border:1.5px solid #cbd5e1;background:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn:hover{background:#f8fafc}
+.btn-forget{border-color:#fca5a5;color:#b91c1c;background:#fff5f5}.btn-forget:hover{background:#fee2e2}
+.btn-remember{border-color:#6ee7b7;color:#065f46;background:#f0fdf4}.btn-remember:hover{background:#dcfce7}
+.chips-row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+.chip{font-size:11px;padding:4px 12px;border-radius:20px;background:#f0f9ff;border:1px solid #bae6fd;color:#0369a1;font-weight:600}
+.chip-g{background:#dcfce7;border-color:#86efac;color:#166534}
+.chip-r{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+.chip-b{background:#e0f2fe;border-color:#7dd3fc;color:#0369a1}
+.shuffle-btn{display:block;margin:0 auto;background:none;border:none;font-size:12px;color:#94a3b8;cursor:pointer;padding:4px 8px}
+.panel{background:#fff;border-radius:16px;padding:18px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.panel-title{font-size:15px;font-weight:700;color:#9d174d;margin-bottom:8px}
+.panel-sub{font-size:12px;color:#64748b;margin-bottom:14px}
+.forget-list{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:16px}
+.forget-tag{padding:4px 12px;border-radius:20px;background:#e0f2fe;border:1px solid #bae6fd;color:#0369a1;font-size:11px;font-weight:600}
+.retry-btn{width:100%;padding:11px;border-radius:12px;border:none;background:#0ea5e9;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+.done-panel{background:linear-gradient(135deg,#e0f2fe,#bae6fd);border:2px solid #7dd3fc;border-radius:16px;padding:28px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.done-panel h3{font-size:18px;font-weight:700;color:#0369a1;margin-bottom:8px}
+.done-panel p{font-size:13px;color:#0284c7;margin-bottom:16px}
+#install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid #0ea5e9;padding:12px 16px;z-index:999;box-shadow:0 -4px 16px rgba(0,0,0,.1)}
+.banner-inner{display:flex;align-items:center;gap:12px;max-width:480px;margin:0 auto}
+.banner-icon{width:42px;height:42px;border-radius:10px;background:#0ea5e9;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.banner-text{flex:1}.banner-title{font-size:13px;font-weight:700}.banner-sub{font-size:11px;color:#64748b}
+.install-btn{padding:7px 14px;border-radius:10px;border:none;background:#0ea5e9;color:#fff;font-size:12px;font-weight:700;cursor:pointer}
+.dismiss-btn{padding:7px 10px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;color:#94a3b8;font-size:12px;cursor:pointer}
+#ios-guide{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid #0ea5e9;padding:16px;z-index:999;box-shadow:0 -4px 16px rgba(0,0,0,.1)}
+.ios-inner{max-width:480px;margin:0 auto}
+.ios-title{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.ios-steps{display:flex;flex-direction:column;gap:8px}
+.ios-step{display:flex;align-items:center;gap:10px;font-size:13px;color:#334155}
+.ios-num{width:24px;height:24px;border-radius:50%;background:#0ea5e9;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-title">🤝 NEGO_U2_p21 – Conversation</div>
+  <button id="pwa-add-btn" onclick="pwaTrigger()">📲 Cài App</button>
+</div>
+<div id="install-banner">
+  <div class="banner-inner">
+    <div class="banner-icon">🤝</div>
+    <div class="banner-text"><div class="banner-title">Cài NEGO U2 Conversation</div><div class="banner-sub">Luyện đàm phán offline</div></div>
+    <button class="install-btn" onclick="doInstall()">Cài ngay</button>
+    <button class="dismiss-btn" onclick="dismissBanner()">✕</button>
+  </div>
+</div>
+<div id="ios-guide">
+  <div class="ios-inner">
+    <div class="ios-title"><span>📲 Thêm vào màn hình chính</span><button onclick="document.getElementById('ios-guide').style.display='none'" style="background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer">✕</button></div>
+    <div class="ios-steps">
+      <div class="ios-step"><div class="ios-num">1</div><span>Nhấn <strong>Chia sẻ ⎙</strong> ở Safari</span></div>
+      <div class="ios-step"><div class="ios-num">2</div><span>Chọn <strong>"Thêm vào Màn hình chính"</strong></span></div>
+      <div class="ios-step"><div class="ios-num">3</div><span>Nhấn <strong>"Thêm"</strong> 🎉</span></div>
+    </div>
+  </div>
+</div>
+<div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span style="font-size:13px;color:#64748b">Tổng: <strong id="total-count">0</strong> thẻ</span>
+    <div id="round-badge" class="round-badge">Vòng 1</div>
+  </div>
+  <div class="filter-row">
+    <button class="ftab on" onclick="setFilter('all',this)">Tất cả</button>
+    <button class="ftab" onclick="setFilter('people',this)">👤 People</button>
+    <button class="ftab" onclick="setFilter('process',this)">🔍 Process</button>
+    <button class="ftab" onclick="setFilter('pressure',this)">⚡ Pressure</button>
+    <button class="ftab" onclick="setFilter('workethic',this)">💪 Work Ethic</button>
+    <button class="ftab" onclick="setFilter('mindset',this)">🧠 Mindset</button>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" id="prog-bar" style="width:0%"></div></div>
+  <div class="meta-row">
+    <span id="card-counter">0 / 0</span>
+    <span id="group-badge" style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;background:#e0f2fe;color:#0369a1">-</span>
+  </div>
+  <div id="card-area">
+    <div class="scene" onclick="flipCard()">
+      <div class="card" id="the-card">
+        <div class="face front" id="face-front">
+          <span class="front-label">💬 Situation / Question</span>
+          <div class="question-text" id="fc-q">-</div>
+          <div class="vocab-chip" id="fc-vocab" style="display:none"></div>
+          <button class="audio-btn" onclick="playFront(event)">🔊 Nghe câu hỏi</button>
+          <div class="flip-hint-front">👆 Tap to see the answer</div>
+        </div>
+        <div class="face back" id="face-back">
+          <span class="back-label">✅ Response</span>
+          <div class="answer-text" id="fc-ans">-</div>
+          <button class="audio-btn-back" onclick="playBack(event)">🔊 Nghe câu trả lời</button>
+          <div class="extra-info" id="fc-extra" style="display:none"></div>
+          <div class="flip-hint-back">👆 Tap to flip back</div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="prevCard()">← Prev</button>
+      <button class="btn btn-forget" onclick="markForget()">😕 Quên</button>
+      <button class="btn btn-remember" onclick="markRemember()">✓ Nhớ</button>
+      <button class="btn" onclick="nextCard()">Next →</button>
+    </div>
+    <div class="chips-row">
+      <span class="chip chip-g">Nhớ: <strong id="count-r">0</strong></span>
+      <span class="chip chip-r">Quên: <strong id="count-f">0</strong></span>
+      <span class="chip chip-b">Còn lại: <strong id="count-l">0</strong></span>
+    </div>
+    <button class="shuffle-btn" onclick="shuffleDeck()">🔀 Shuffle</button>
+  </div>
+  <div class="panel" id="forget-panel" style="display:none">
+    <div class="panel-title">🔁 Ôn lại thẻ chưa nhớ</div>
+    <div class="panel-sub">Vòng này xong! Các thẻ <strong>Quên</strong>:</div>
+    <div class="forget-list" id="forget-list"></div>
+    <button class="retry-btn" onclick="startRetry()">Ôn lại ngay →</button>
+  </div>
+  <div class="done-panel" id="done-panel" style="display:none">
+    <div style="font-size:44px;margin-bottom:10px">🏆</div>
+    <h3>Xuất sắc! Bạn đã nhớ tất cả!</h3>
+    <p>Hoàn thành toàn bộ thẻ hội thoại đàm phán.</p>
+    <button class="btn btn-remember" style="margin:0 auto;display:block" onclick="resetAll()">🔄 Làm lại từ đầu</button>
+  </div>
+</div>
+<script>
+const CARDS = [
+  // ===== PEOPLE & PROFILE =====
+  {group:"people",
+   q:"Before a negotiation, what do you try to find out about your opponent?",
+   vocab:"🔑 opponent / position / authority",
+   ans:`I research their <span class="hl">position</span>, their <span class="hl">authority</span> to make decisions, and their <span class="hl">cultural background</span>. Knowing your <span class="hl">opponent</span> well gives you a real advantage.`,
+   extra:`💡 <span class="hl">opponent</span> = đối thủ / đối tác đàm phán │ <span class="hl">position</span> = chức vụ │ <span class="hl">authority</span> = thẩm quyền quyết định`},
+
+  {group:"people",
+   q:"Why does cultural background matter in a negotiation?",
+   vocab:"🔑 cultural background / personal attitudes",
+   ans:`Because <span class="hl">cultural background</span> shapes a person's <span class="hl">personal attitudes</span> — how direct they are, how they handle conflict, and what they value in a deal.`,
+   extra:`💡 <span class="hl">cultural background</span> = nền tảng văn hóa ảnh hưởng cách đàm phán │ <span class="hl">personal attitudes</span> = thái độ cá nhân`},
+
+  {group:"people",
+   q:"You're about to negotiate with someone new. What's the first thing you check?",
+   vocab:"🔑 authority / position / experience",
+   ans:`I always check if they have the <span class="hl">authority</span> to say yes. Negotiating with someone who has no decision-making power wastes everyone's time. Their <span class="hl">position</span> and <span class="hl">experience</span> also tell me how prepared they'll be.`,
+   extra:`💡 <span class="hl">authority</span> = thẩm quyền — nếu họ không có quyền quyết định, đàm phán sẽ bế tắc │ Luôn hỏi: "Who has the final say?"`},
+
+  // ===== NEGOTIATION PROCESS =====
+  {group:"process",
+   q:"How do you prepare for understanding your opponent's strategy?",
+   vocab:"🔑 approaches and tactics / patterns or characteristics",
+   ans:`I study their past <span class="hl">patterns or characteristics</span> — how they've negotiated before. That tells me their likely <span class="hl">approaches and tactics</span> this time.`,
+   extra:`💡 <span class="hl">patterns</span> = khuôn mẫu hành vi lặp lại │ <span class="hl">approaches and tactics</span> = phương pháp và chiến thuật đàm phán`},
+
+  {group:"process",
+   q:"What do you mean by 'hidden agendas' in a negotiation?",
+   vocab:"🔑 hidden agendas and motives / hidden factors",
+   ans:`<span class="hl">Hidden agendas and motives</span> are what people REALLY want — not what they say. They're often <span class="hl">hidden factors</span> that quietly drive the whole negotiation without being stated openly.`,
+   extra:`💡 <span class="hl">hidden agenda</span> = mục đích ngầm ẩn │ <span class="hl">hidden factors</span> = yếu tố tiềm ẩn (có thể là deadline, budget...) │ ⚠️ Luôn hỏi: what do they REALLY need?`},
+
+  {group:"process",
+   q:"Someone said: 'Fact-finding is the mother's milk of negotiation.' What does that mean?",
+   vocab:"🔑 fact-finding / mother's milk",
+   ans:`It means <span class="hl">fact-finding</span> — gathering information before you negotiate — is absolutely essential. Just like mother's milk is vital for a newborn, <span class="hl">fact-finding</span> is the foundation of any successful negotiation.`,
+   extra:`💡 <span class="hl">fact-finding</span> = thu thập thông tin / tìm hiểu sự thật │ mother's milk = điều thiết yếu nhất, không thể thiếu │ Prepare before you negotiate!`},
+
+  {group:"process",
+   q:"After signing the deal, how do you make sure the agreement sticks?",
+   vocab:"🔑 will agreement stick?",
+   ans:`That's the key question — <span class="hl">will the agreement stick</span>? I always make sure both sides fully understand and commit to the terms. A deal on paper means nothing if one side doesn't honor it.`,
+   extra:`💡 <span class="hl">stick</span> = giữ vững, có hiệu lực lâu dài │ 'Will the agreement stick?' = Thỏa thuận có được thực hiện không? │ ≈ Will they honor the deal?`},
+
+  // ===== PRESSURE & CONSTRAINTS =====
+  {group:"pressure",
+   q:"How does being under pressure affect someone's negotiating position?",
+   vocab:"🔑 under pressure / have a time limit",
+   ans:`When someone is <span class="hl">under pressure</span> — especially if they <span class="hl">have a time limit</span> — they tend to make concessions faster. That's useful information if you know it and they don't know you know.`,
+   extra:`💡 <span class="hl">under pressure</span> = chịu áp lực │ <span class="hl">have a time limit</span> = bị giới hạn thời gian │ Áp lực deadline → họ sẽ nhượng bộ nhanh hơn`},
+
+  {group:"pressure",
+   q:"You discover your opponent is under pressure financially. How does that change your approach?",
+   vocab:"🔑 under pressure financially / hidden factors",
+   ans:`If they're <span class="hl">under pressure financially</span>, they NEED this deal more than they're showing. That's a powerful <span class="hl">hidden factor</span>. I'd negotiate more firmly — they have less room to walk away.`,
+   extra:`💡 <span class="hl">under pressure financially</span> = chịu áp lực tài chính │ <span class="hl">hidden factor</span> = yếu tố tiềm ẩn tạo lợi thế cho bạn │ Knowledge = leverage`},
+
+  {group:"pressure",
+   q:"The other side says they need to close the deal by Friday. What do you think?",
+   vocab:"🔑 have a time limit / under pressure",
+   ans:`That tells me they <span class="hl">have a time limit</span> — they're <span class="hl">under pressure</span> to close quickly. I won't rush. The closer we get to Friday, the more flexible they might become.`,
+   extra:`💡 <span class="hl">have a time limit</span> = bị giới hạn thời gian = áp lực với HỌ │ Đừng để deadline của họ trở thành deadline của bạn! │ Time pressure = leverage`},
+
+  // ===== WORK ETHIC =====
+  {group:"workethic",
+   q:"How much preparation do you do before a major negotiation?",
+   vocab:"🔑 no substitute / demanding work / fact-finding",
+   ans:`As much as it takes! There is <span class="hl">no substitute</span> for thorough preparation. Negotiation is <span class="hl">demanding work</span>, and all that <span class="hl">fact-finding</span> before the meeting is what makes the difference.`,
+   extra:`💡 <span class="hl">no substitute</span> = không có gì thay thế được │ <span class="hl">demanding work</span> = công việc đòi hỏi nhiều nỗ lực │ Prep time always pays off!`},
+
+  {group:"workethic",
+   q:"Was all that preparation worth it? The deal went really well!",
+   vocab:"🔑 pay off / check off",
+   ans:`Absolutely — it all <span class="hl">paid off</span>! I had <span class="hl">checked off</span> every item on my preparation list before walking in. When you're fully prepared, you feel confident and in control.`,
+   extra:`💡 <span class="hl">pay off</span> = mang lại kết quả, được đền đáp │ <span class="hl">check off</span> = đánh dấu hoàn thành ✓ trong danh sách │ 'Hard work pays off!'`},
+
+  {group:"workethic",
+   q:"What's on your negotiation preparation checklist?",
+   vocab:"🔑 check off / approaches and tactics / hidden factors",
+   ans:`I <span class="hl">check off</span> each item: research their <span class="hl">approaches and tactics</span>, identify possible <span class="hl">hidden factors</span>, confirm their <span class="hl">authority</span>, and understand what <span class="hl">turns them on or off</span>. No substitute for a good checklist!`,
+   extra:`💡 <span class="hl">check off</span> = đánh dấu từng mục đã xong │ Preparation checklist = công cụ thiết yếu của nhà đàm phán giỏi`},
+
+  // ===== MINDSET & IDIOMS =====
+  {group:"mindset",
+   q:"How do you build empathy with someone you're negotiating against?",
+   vocab:"🔑 put yourself in their shoes / personal attitudes",
+   ans:`I always try to <span class="hl">put myself in their shoes</span>. Understanding their <span class="hl">personal attitudes</span>, pressures, and goals helps me find solutions that work for both sides — not just mine.`,
+   extra:`💡 <span class="hl">put yourself in their shoes</span> = đặt bản thân vào vị trí của họ │ = see things from their perspective │ Empathy is a negotiation superpower!`},
+
+  {group:"mindset",
+   q:"How do you know what motivates or discourages your opponent?",
+   vocab:"🔑 turns them on or off / cultural background",
+   ans:`I watch carefully for what <span class="hl">turns them on or off</span>. Their <span class="hl">cultural background</span> and <span class="hl">personal attitudes</span> are big clues. What energizes one person may completely put off another.`,
+   extra:`💡 <span class="hl">turns them on</span> = làm họ hứng thú, có động lực │ <span class="hl">turns them off</span> = làm họ mất hứng, phản tác dụng │ Knowing this = strategic advantage`},
+
+  {group:"mindset",
+   q:"You and your opponent are looking at the same data, but reaching different conclusions. Why?",
+   vocab:"🔑 view the exact same facts differently",
+   ans:`That's completely normal. Two people can <span class="hl">view the exact same facts differently</span> based on their background, goals, and assumptions. That's why <span class="hl">fact-finding</span> alone isn't enough — you need to understand their perspective too.`,
+   extra:`💡 <span class="hl">view the exact same facts differently</span> = nhìn cùng sự kiện nhưng diễn giải khác nhau │ Liên kết với: put yourself in their shoes │ Same facts ≠ same conclusions`},
+
+  {group:"mindset",
+   q:"What's the most important mindset shift for becoming a better negotiator?",
+   vocab:"🔑 put yourself in their shoes / no substitute / fact-finding",
+   ans:`Learning to <span class="hl">put yourself in their shoes</span> changes everything. Combined with solid <span class="hl">fact-finding</span>, it means there is truly <span class="hl">no substitute</span> for preparation and empathy — those two together make a great negotiator.`,
+   extra:`💡 Tổng kết bài: 3 trụ cột đàm phán hiệu quả: 1️⃣ <span class="hl">Fact-finding</span> 2️⃣ <span class="hl">Put yourself in their shoes</span> 3️⃣ <span class="hl">No substitute</span> for preparation`},
+];
+
+const GRP_LABEL={people:"👤 People",process:"🔍 Process",pressure:"⚡ Pressure",workethic:"💪 Work Ethic",mindset:"🧠 Mindset"};
+const GRP_COLOR={people:"#dbeafe|#1e40af",process:"#fdf4ff|#7e22ce",pressure:"#fff1f2|#be123c",workethic:"#ecfdf5|#065f46",mindset:"#fef3c7|#92400e"};
+
+let deck=[],idx=0,remembered=new Set(),forgotten=new Set(),currentFilter='all',round=1,mode='normal';
+function buildDeck(f){return f==='all'?[...CARDS]:CARDS.filter(c=>c.group===f);}
+function getActive(){return deck.filter((_,i)=>!remembered.has(i));}
+
+function setFilter(f,btn){
+  document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  currentFilter=f;deck=buildDeck(f);remembered.clear();forgotten.clear();idx=0;round=1;mode='normal';
+  updateRoundBadge();showCardArea();unflip();render();
+}
+function shuffleDeck(){
+  const active=getActive();
+  for(let i=active.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[active[i],active[j]]=[active[j],active[i]];}
+  deck=[...active,...deck.filter((_,i)=>remembered.has(i))];
+  remembered.clear();idx=0;unflip();render();
+}
+
+function render(){
+  const active=getActive();const rem=active.length;
+  document.getElementById('total-count').textContent=deck.length;
+  if(rem===0){const fw=deck.filter((_,i)=>forgotten.has(i));if(fw.length>0)showForgetPanel(fw);else showDonePanel();return;}
+  const c=active[idx%rem];const pos=(idx%rem)+1;
+  document.getElementById('fc-q').textContent=c.q;
+  document.getElementById('fc-ans').innerHTML=c.ans;
+  const vc=document.getElementById('fc-vocab');
+  if(c.vocab){vc.textContent=c.vocab;vc.style.display='inline-block';}else{vc.style.display='none';}
+  const ex=document.getElementById('fc-extra');
+  if(c.extra){ex.innerHTML=c.extra;ex.style.display='block';}else{ex.style.display='none';}
+  const col=(GRP_COLOR[c.group]||'#f1f5f9|#475569').split('|');
+  const gb=document.getElementById('group-badge');gb.textContent=GRP_LABEL[c.group]||c.group;gb.style.background=col[0];gb.style.color=col[1];
+  document.getElementById('card-counter').textContent=pos+' / '+rem;
+  document.getElementById('prog-bar').style.width=Math.round(pos/rem*100)+'%';
+  document.getElementById('count-r').textContent=remembered.size;
+  document.getElementById('count-f').textContent=forgotten.size;
+  document.getElementById('count-l').textContent=rem;
+}
+
+function flipCard(){
+  const front=document.getElementById('face-front');
+  const back=document.getElementById('face-back');
+  const isBack=back.style.display==='flex';
+  if(isBack){back.style.display='none';front.style.display='flex';}
+  else{front.style.display='none';back.style.display='flex';}
+}
+function unflip(){
+  const front=document.getElementById('face-front');
+  const back=document.getElementById('face-back');
+  front.style.display='flex';back.style.display='none';
+}
+function prevCard(){const r=getActive().length;if(!r)return;idx=(idx-1+r)%r;unflip();render();}
+function nextCard(){const r=getActive().length;if(!r)return;idx=(idx+1)%r;unflip();render();}
+function markRemember(){const a=getActive();if(!a.length)return;const ri=deck.indexOf(a[idx%a.length]);remembered.add(ri);forgotten.delete(ri);const nr=getActive().length;if(nr>0)idx=idx%nr;unflip();render();}
+function markForget(){const a=getActive();if(!a.length)return;const ri=deck.indexOf(a[idx%a.length]);forgotten.add(ri);const nr=getActive().length;if(nr>0)idx=(idx+1)%nr;unflip();render();}
+
+// TTS — Male (front) / Female (back)
+let _vm=null,_vf=null;
+function _load(){
+  if(_vm&&_vf)return true;
+  const vs=window.speechSynthesis.getVoices();if(!vs.length)return false;
+  const en=vs.filter(v=>v.lang.startsWith('en'));
+  const ft=[v=>v.name==='Samantha',v=>v.name==='Karen',v=>v.name==='Moira',v=>/Microsoft (Jenny|Aria|Emma)/i.test(v.name),v=>/Google.*US.*Female/i.test(v.name),v=>/Google.*English/i.test(v.name)&&v.lang==='en-US'];
+  const mt=[v=>v.name==='Daniel',v=>v.name==='Fred',v=>v.name==='Alex',v=>/Microsoft (Guy|Brian|Ryan)/i.test(v.name),v=>/Google.*US.*Male/i.test(v.name)];
+  const pick=ts=>{const p=[];for(const t of ts){const v=vs.find(t);if(v&&!p.includes(v)){p.push(v);if(p.length>=3)break;}}return p.length?p:null;};
+  _vf=pick(ft);_vm=pick(mt);if(!_vm)_vm=[en[0]];if(!_vf)_vf=[en[en.length-1]];return true;
+}
+function _rand(p){return p[Math.floor(Math.random()*p.length)];}
+function speak(text,gender){
+  const clean=text.replace(/[💡⚠️🔑✅💬🔊→│1️⃣2️⃣3️⃣]/g,'').replace(/<[^>]*>/g,'').replace(/\(.*?\)/g,'').replace(/e\.g\..*/gi,'').replace(/\s+/g,' ').trim();
+  if(!clean)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(clean);u.lang='en-US';u.rate=0.87;u.pitch=gender==='male'?0.88:1.12;u.volume=1;
+  const go=()=>{_load();const p=gender==='male'?_vm:_vf;if(p)u.voice=_rand(p);window.speechSynthesis.speak(u);};
+  if(!window.speechSynthesis.getVoices().length){window.speechSynthesis.onvoiceschanged=()=>{_vm=null;_vf=null;go();};}else{go();}
+}
+if(window.speechSynthesis){window.speechSynthesis.getVoices();window.speechSynthesis.onvoiceschanged=()=>{_vm=null;_vf=null;_load();};}
+function playFront(e){e.stopPropagation();speak(document.getElementById('fc-q').textContent,'male');}
+function playBack(e){e.stopPropagation();speak(document.getElementById('fc-ans').innerText,'female');}
+
+function showCardArea(){document.getElementById('card-area').style.display='block';document.getElementById('forget-panel').style.display='none';document.getElementById('done-panel').style.display='none';}
+function showForgetPanel(words){
+  document.getElementById('card-area').style.display='none';document.getElementById('done-panel').style.display='none';
+  document.getElementById('forget-panel').style.display='block';
+  document.getElementById('count-r').textContent=remembered.size;document.getElementById('count-f').textContent=forgotten.size;document.getElementById('count-l').textContent=0;
+  document.getElementById('forget-list').innerHTML=words.map(c=>`<span class="forget-tag">${c.vocab||c.q.slice(0,28)+'...'}</span>`).join('');
+}
+function showDonePanel(){document.getElementById('card-area').style.display='none';document.getElementById('forget-panel').style.display='none';document.getElementById('done-panel').style.display='block';}
+function startRetry(){deck=deck.filter((_,i)=>forgotten.has(i));for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}remembered.clear();forgotten.clear();idx=0;round++;mode='retry';updateRoundBadge();showCardArea();unflip();render();}
+function resetAll(){deck=buildDeck(currentFilter);remembered.clear();forgotten.clear();idx=0;round=1;mode='normal';updateRoundBadge();showCardArea();unflip();render();}
+function updateRoundBadge(){const b=document.getElementById('round-badge');if(mode==='retry'){b.textContent='🔁 Ôn lại: Vòng '+round;b.className='round-badge retry';}else{b.textContent='Vòng '+round;b.className='round-badge';}}
+
+// PWA
+const PWA_NAME='NEGO_U2_p21 – Conversation',PWA_SHORT='NEGO QA',PWA_EMOJI='🤝',PWA_COLOR='#0ea5e9';
+let deferredPrompt=null;
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+function genIcon(sz){const s=`<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><rect width="${sz}" height="${sz}" rx="${sz*.22}" fill="${PWA_COLOR}"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-size="${sz*.45}">${PWA_EMOJI}</text><text x="50%" y="80%" text-anchor="middle" font-size="${sz*.13}" font-family="sans-serif" fill="rgba(255,255,255,0.9)" font-weight="bold">${PWA_SHORT}</text></svg>`;return 'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(s)));}
+function injectManifest(){const m={name:PWA_NAME,short_name:PWA_SHORT,display:'standalone',background_color:'#f0f9ff',theme_color:PWA_COLOR,orientation:'portrait',icons:[{src:genIcon(192),sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'},{src:genIcon(512),sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}]};const b=new Blob([JSON.stringify(m)],{type:'application/json'});const l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(b);document.head.appendChild(l);document.getElementById('pwa-icon').href=genIcon(180);}
+function registerSW(){if(!('serviceWorker' in navigator))return;const c=`const C='v1';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(['./'])));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('./'))));});`;const b=new Blob([c],{type:'application/javascript'});navigator.serviceWorker.register(URL.createObjectURL(b)).catch(()=>{});}
+function pwaTrigger(){if(isIOS&&!isStandalone)document.getElementById('ios-guide').style.display='block';else if(deferredPrompt)document.getElementById('install-banner').style.display='block';}
+function doInstall(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(r=>{if(r.outcome==='accepted'){document.getElementById('install-banner').style.display='none';document.getElementById('pwa-add-btn').style.display='none';}deferredPrompt=null;});}
+function dismissBanner(){document.getElementById('install-banner').style.display='none';sessionStorage.setItem('pwa-dismissed','1');}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;if(!isStandalone&&!sessionStorage.getItem('pwa-dismissed'))document.getElementById('install-banner').style.display='block';document.getElementById('pwa-add-btn').style.display='block';});
+window.addEventListener('appinstalled',()=>{document.getElementById('install-banner').style.display='none';document.getElementById('pwa-add-btn').style.display='none';deferredPrompt=null;});
+if(!isStandalone){injectManifest();registerSW();document.getElementById('pwa-add-btn').style.display='block';if(isIOS&&!sessionStorage.getItem('ios-shown')){setTimeout(()=>{document.getElementById('ios-guide').style.display='block';sessionStorage.setItem('ios-shown','1');},3000);}}
+deck=buildDeck('all');render();
+</script>
+</body>
+</html>
